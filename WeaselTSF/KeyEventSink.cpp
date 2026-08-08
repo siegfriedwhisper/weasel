@@ -117,12 +117,12 @@ bool WeaselTSF::_HandleGridModeKey(const weasel::KeyEvent& ke, BOOL* pfEaten) {
   bool handled = false;
   switch (ke.keycode) {
     case ibus::Left:
-      if (index % 5 > 0)
+      if (index > 0)
         new_index = index - 1;
       handled = true;
       break;
     case ibus::Right:
-      if (index % 5 < 4 && index + 1 < (int)cand_count)
+      if (index + 1 < (int)cand_count)
         new_index = index + 1;
       handled = true;
       break;
