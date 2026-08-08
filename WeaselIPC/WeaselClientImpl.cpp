@@ -103,6 +103,12 @@ bool ClientImpl::ChangePage(bool backward) {
   return ret != 0;
 }
 
+void ClientImpl::SetLayoutType(int layout_type) {
+  if (!_Active())
+    return;
+  _SendMessage(WEASEL_IPC_SET_LAYOUT_TYPE, layout_type, session_id);
+}
+
 void ClientImpl::UpdateInputPosition(RECT const& rc) {
   if (!_Active())
     return;
@@ -242,6 +248,10 @@ bool Client::HighlightCandidateOnCurrentPage(size_t index) {
 
 bool Client::ChangePage(bool backward) {
   return m_pImpl->ChangePage(backward);
+}
+
+void Client::SetLayoutType(int layout_type) {
+  m_pImpl->SetLayoutType(layout_type);
 }
 
 void Client::UpdateInputPosition(RECT const& rc) {

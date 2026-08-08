@@ -73,6 +73,8 @@ void WeaselTSF::_EnterGridMode() {
     return;
   m_grid_original_layout = _cand->style().layout_type;
   m_grid_mode = true;
+  // 通过 IPC 通知 Server 切换渲染布局（渲染在 WeaselServer 进程）
+  m_client.SetLayoutType(weasel::UIStyle::LAYOUT_GRID);
   _cand->SetLayoutType(weasel::UIStyle::LAYOUT_GRID);
   _cand->Refresh();
 }
@@ -81,6 +83,7 @@ void WeaselTSF::_ExitGridMode() {
   if (!m_grid_mode)
     return;
   m_grid_mode = false;
+  m_client.SetLayoutType(m_grid_original_layout);
   _cand->SetLayoutType((weasel::UIStyle::LayoutType)m_grid_original_layout);
   _cand->Refresh();
 }

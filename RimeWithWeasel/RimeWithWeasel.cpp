@@ -343,6 +343,17 @@ bool RimeWithWeaselHandler::ChangePage(bool backward,
   return res;
 }
 
+void RimeWithWeaselHandler::SetLayoutType(int layout_type,
+                                          WeaselSessionId ipc_id) {
+  DLOG(INFO) << "set layout type, ipc_id = " << ipc_id
+             << ", layout_type = " << layout_type;
+  if (m_ui) {
+    // 更新 Server 端渲染用的 style，面板 _CreateLayout() 据此切换布局
+    m_ui->style().layout_type = (weasel::UIStyle::LayoutType)layout_type;
+    m_ui->Refresh();
+  }
+}
+
 void RimeWithWeaselHandler::FocusIn(DWORD client_caps, WeaselSessionId ipc_id) {
   DLOG(INFO) << "Focus in: ipc_id = " << ipc_id
              << ", client_caps = " << client_caps;

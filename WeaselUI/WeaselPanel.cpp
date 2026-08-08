@@ -176,8 +176,9 @@ void WeaselPanel::Refresh() {
     ReleaseDC(dc);
     _ResizeWindow();
     _RepositionWindow();
-    if (m_ctx != m_octx) {
+    if (m_ctx != m_octx || m_style != m_ostyle) {
       m_octx = m_ctx;
+      m_ostyle = m_style;
       RedrawWindow();
     }
   }
