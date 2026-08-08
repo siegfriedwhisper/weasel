@@ -34,6 +34,11 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       else if (ke.keycode == ibus::Down)
         ke.keycode = ibus::Up;
     }
+    if (_HandleGridModeKey(ke, pfEaten)) {
+      prevfEaten = *pfEaten;
+      prevKeyEvent = ke;
+      return;
+    }
     if (!keyCountToSimulate)
       *pfEaten = (BOOL)m_client.ProcessKeyEvent(ke);
 
@@ -60,6 +65,98 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
     prevfEaten = *pfEaten;
     prevKeyEvent = ke;
   }
+}
+
+/* Grid Layout (5x5 candidate matrix) */
+void WeaselTSF::_EnterGridMode() {
+  if (m_grid_mode)
+    return;
+  m_grid_original_layout = _cand->style().layout_type;
+  m_grid_mode = true;
+  _cand->SetLayoutType(UIStyle::LAYOUT_GRID);
+  _cand->Refresh();
+}
+
+void WeaselTSF::_ExitGridMode() {
+  if (!m_grid_mode)
+    return;
+  m_grid_mode = false;
+  _cand->SetLayoutType((UIStyle::LayoutType)m_grid_original_layout);
+  _cand->Refresh();
+}
+
+bool WeaselTSF::_HandleGridModeKey(const weasel::KeyEvent& ke,
+                                   BOOL* pfEaten) {
+  UINT cand_count = 0, current_select = 0;
+  _cand->GetCount(&cand_count);
+  _cand->GetSelection(&current_select);
+
+  bool is_release = (ke.mask & ibus::RELEASE_MASK) != 0;
+  bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
+                                  ibus::ALT_MASK)) != 0;
+
+  if (!m_grid_mode) {
+    // ↓ 且非释放 且无修饰键 且有候选 → 展开矩阵
+    if (!is_release && !has_modifier && ke.keycode == ibus::Down &&
+        cand_count > 0) {
+      _EnterGridMode();
+      *pfEaten = TRUE;
+      return true;
+    }
+    return false;
+  }
+
+  // grid 模式
+  if (cand_count == 0) {
+    // 候选消失（选词/清空）后自动退出矩阵
+    _ExitGridMode();
+    return false;
+  }
+
+  int index = (int)current_select;
+  int new_index = index;
+  bool handled = false;
+  switch (ke.keycode) {
+    case ibus::Left:
+      if (index % 5 > 0)
+        new_index = index - 1;
+      handled = true;
+      break;
+    case ibus::Right:
+      if (index % 5 < 4 && index + 1 < (int)cand_count)
+        new_index = index + 1;
+      handled = true;
+      break;
+    case ibus::Up:
+      if (index < 5) {  // 顶行 ↑ → 收起
+        _ExitGridMode();
+        *pfEaten = TRUE;
+        return true;
+      }
+      new_index = index - 5;
+      handled = true;
+      break;
+    case ibus::Down:
+      if (index + 5 < (int)cand_count)
+        new_index = index + 5;
+      handled = true;
+      break;
+    case ibus::Escape:  // Esc → 收起
+      _ExitGridMode();
+      *pfEaten = TRUE;
+      return true;
+    default:
+      // 其他键（空格/回车/字母）交给引擎正常处理
+      break;
+  }
+
+  if (handled) {
+    if (new_index != index)
+      m_client.HighlightCandidateOnCurrentPage(new_index);
+    *pfEaten = TRUE;
+    return true;
+  }
+  return false;
 }
 
 STDAPI WeaselTSF::OnSetFocus(BOOL fForeground) {

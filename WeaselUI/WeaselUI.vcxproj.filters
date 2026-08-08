@@ -42,6 +42,9 @@
     <ClCompile Include="HorizontalLayout.cpp">
       <Filter>Source Files\Layouts</Filter>
     </ClCompile>
+    <ClCompile Include="GridLayout.cpp">
+      <Filter>Source Files\Layouts</Filter>
+    </ClCompile>
     <ClCompile Include="FullScreenLayout.cpp">
       <Filter>Source Files\Layouts</Filter>
     </ClCompile>
@@ -78,6 +81,9 @@
       <Filter>Header Files\Layouts</Filter>
     </ClInclude>
     <ClInclude Include="HorizontalLayout.h">
+      <Filter>Header Files\Layouts</Filter>
+    </ClInclude>
+    <ClInclude Include="GridLayout.h">
       <Filter>Header Files\Layouts</Filter>
     </ClInclude>
     <ClInclude Include="FullScreenLayout.h">

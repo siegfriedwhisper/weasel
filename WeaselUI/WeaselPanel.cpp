@@ -9,6 +9,7 @@
 
 #include "VerticalLayout.h"
 #include "HorizontalLayout.h"
+#include "GridLayout.h"
 #include "FullScreenLayout.h"
 #include "VHorizontalLayout.h"
 
@@ -121,6 +122,8 @@ void WeaselPanel::_CreateLayout() {
     } else if (m_style.layout_type == UIStyle::LAYOUT_HORIZONTAL ||
                m_style.layout_type == UIStyle::LAYOUT_HORIZONTAL_FULLSCREEN) {
       layout = new HorizontalLayout(m_style, m_ctx, m_status, pDWR);
+    } else if (m_style.layout_type == UIStyle::LAYOUT_GRID) {
+      layout = new GridLayout(m_style, m_ctx, m_status, pDWR);
     }
 
     if (IS_FULLSCREENLAYOUT(m_style)) {

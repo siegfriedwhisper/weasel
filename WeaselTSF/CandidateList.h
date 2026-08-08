@@ -64,6 +64,8 @@ class CCandidateList : public ITfIntegratableCandidateListUIElement,
   }
 
   weasel::UIStyle& style();
+  void SetLayoutType(weasel::UIStyle::LayoutType t);
+  void Refresh();
 
  private:
   // void _UpdateOwner();
