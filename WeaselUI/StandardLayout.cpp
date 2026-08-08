@@ -153,9 +153,10 @@ bool weasel::StandardLayout::_IsHighlightOverCandidateWindow(CRect& rc,
 
 // prepare Hemispherical rounding info
 void weasel::StandardLayout::_PrepareRoundInfo(CDCHandle& dc) {
-  const int tmp[6] = {UIStyle::LAYOUT_VERTICAL, UIStyle::LAYOUT_HORIZONTAL,
-                      UIStyle::LAYOUT_VERTICAL_TEXT, UIStyle::LAYOUT_VERTICAL,
-                      UIStyle::LAYOUT_HORIZONTAL, UIStyle::LAYOUT_HORIZONTAL};
+  const int tmp[6] = {
+      UIStyle::LAYOUT_VERTICAL,      UIStyle::LAYOUT_HORIZONTAL,
+      UIStyle::LAYOUT_VERTICAL_TEXT, UIStyle::LAYOUT_VERTICAL,
+      UIStyle::LAYOUT_HORIZONTAL,    UIStyle::LAYOUT_HORIZONTAL};
   int layout_type = tmp[_style.layout_type];
   bool textHemispherical = false, cand0Hemispherical = false;
   if (!_style.inline_preedit) {

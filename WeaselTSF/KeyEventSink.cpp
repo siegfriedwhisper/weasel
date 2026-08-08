@@ -85,15 +85,14 @@ void WeaselTSF::_ExitGridMode() {
   _cand->Refresh();
 }
 
-bool WeaselTSF::_HandleGridModeKey(const weasel::KeyEvent& ke,
-                                   BOOL* pfEaten) {
+bool WeaselTSF::_HandleGridModeKey(const weasel::KeyEvent& ke, BOOL* pfEaten) {
   UINT cand_count = 0, current_select = 0;
   _cand->GetCount(&cand_count);
   _cand->GetSelection(&current_select);
 
   bool is_release = (ke.mask & ibus::RELEASE_MASK) != 0;
-  bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
-                                  ibus::ALT_MASK)) != 0;
+  bool has_modifier =
+      (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK | ibus::ALT_MASK)) != 0;
 
   if (!m_grid_mode) {
     // ↓ 且非释放 且无修饰键 且有候选 → 展开矩阵

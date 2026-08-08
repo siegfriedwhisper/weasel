@@ -101,8 +101,8 @@ void GridLayout::DoLayout(CDCHandle dc, PDWR pDWR) {
           (i != id && (_style.comment_text_color & 0xff000000));
       if (!comments.at(i).str.empty() && cmtFontValid && cmtFontNotTrans) {
         const std::wstring& comment = comments.at(i).str;
-        GetTextSizeDW(comment, comment.length(), pDWR->pCommentTextFormat,
-                      pDWR, &cmt_sz);
+        GetTextSizeDW(comment, comment.length(), pDWR->pCommentTextFormat, pDWR,
+                      &cmt_sz);
         cand_width += _style.hilite_spacing + cmt_sz.cx * cmtFontValid;
         cand_height = max(cand_height, cmt_sz.cy);
       }
@@ -119,7 +119,8 @@ void GridLayout::DoLayout(CDCHandle dc, PDWR pDWR) {
     for (auto i = 0; i < candidates_count && i < MAX_CANDIDATES_COUNT; ++i) {
       int col = i % grid_columns;
       int row = i / grid_columns;
-      int x = offsetX + real_margin_x + col * (cell_w + _style.candidate_spacing);
+      int x =
+          offsetX + real_margin_x + col * (cell_w + _style.candidate_spacing);
       int y = height + row * (cell_h + _style.spacing);
 
       _candidateRects[i].SetRect(x, y, x + cell_w, y + cell_h);
@@ -150,17 +151,15 @@ void GridLayout::DoLayout(CDCHandle dc, PDWR pDWR) {
       if (!comments.at(i).str.empty() && cmtFontValid && cmtFontNotTrans) {
         const std::wstring& comment = comments.at(i).str;
         CSize cmt_sz;
-        GetTextSizeDW(comment, comment.length(), pDWR->pCommentTextFormat,
-                      pDWR, &cmt_sz);
-        _candidateCommentRects[i].SetRect(tx, ty,
-                                          tx + cmt_sz.cx * cmtFontValid,
+        GetTextSizeDW(comment, comment.length(), pDWR->pCommentTextFormat, pDWR,
+                      &cmt_sz);
+        _candidateCommentRects[i].SetRect(tx, ty, tx + cmt_sz.cx * cmtFontValid,
                                           ty + cmt_sz.cy);
       } else
         _candidateCommentRects[i].SetRect(tx, ty, tx, ty + text_sz.cy);
     }
 
-    width = max(width, offsetX + real_margin_x +
-                           grid_columns * cell_w +
+    width = max(width, offsetX + real_margin_x + grid_columns * cell_w +
                            (grid_columns - 1) * _style.candidate_spacing +
                            real_margin_x);
     height += rows * cell_h + (rows - 1) * _style.spacing;
