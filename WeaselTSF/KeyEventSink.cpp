@@ -73,7 +73,7 @@ void WeaselTSF::_EnterGridMode() {
     return;
   m_grid_original_layout = _cand->style().layout_type;
   m_grid_mode = true;
-  _cand->SetLayoutType(UIStyle::LAYOUT_GRID);
+  _cand->SetLayoutType(weasel::UIStyle::LAYOUT_GRID);
   _cand->Refresh();
 }
 
@@ -81,7 +81,7 @@ void WeaselTSF::_ExitGridMode() {
   if (!m_grid_mode)
     return;
   m_grid_mode = false;
-  _cand->SetLayoutType((UIStyle::LayoutType)m_grid_original_layout);
+  _cand->SetLayoutType((weasel::UIStyle::LayoutType)m_grid_original_layout);
   _cand->Refresh();
 }
 

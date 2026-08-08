@@ -236,7 +236,7 @@ class WeaselTSF : public ITfTextInputProcessorEx,
 
   /* Grid Layout (5x5 candidate matrix) state */
   bool m_grid_mode = false;
-  int m_grid_original_layout = UIStyle::LAYOUT_HORIZONTAL;
+  int m_grid_original_layout = weasel::UIStyle::LAYOUT_HORIZONTAL;
 
   // guidatom for the display attibute.
   TfGuidAtom _gaDisplayAttributeInput;
