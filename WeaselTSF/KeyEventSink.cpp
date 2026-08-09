@@ -115,6 +115,12 @@ bool WeaselTSF::_HandleGridModeKey(const weasel::KeyEvent& ke, BOOL* pfEaten) {
     return false;
   }
 
+  // keyup 直接吃键不处理：避免弹起方向键时误移动高亮/误触发收起
+  if (is_release) {
+    *pfEaten = TRUE;
+    return true;
+  }
+
   int index = (int)current_select;
   int new_index = index;
   bool handled = false;

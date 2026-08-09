@@ -39,9 +39,13 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
       _ShowInlinePreedit(_pEditSessionContext, context);
     }
     _UpdateCompositionWindow(_pEditSessionContext);
+    // Only refresh the UI cache when a real response was parsed. When the
+    // key was eaten (e.g. grid-mode navigation) there is no new response and
+    // `context` is a fresh empty Context — updating would wipe the cached
+    // candidate list, making GetCount() return 0 and prematurely collapsing
+    // the grid layout on the very next key.
+    _UpdateUI(*context, _status);
   }
-
-  _UpdateUI(*context, _status);
 
   return TRUE;
 }
