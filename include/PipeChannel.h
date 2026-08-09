@@ -176,8 +176,20 @@ class PipeChannel : public PipeChannelBase {
 
   _TyRes _ReceiveResponse() {
     HANDLE* phandle = _GetPipeHandle();
-    _TyRes result;
-    _Receive(*phandle, &result, sizeof(result));
+    _TyRes result = 0;
+    // Read the full message header (PipeMessage) instead of just _TyRes.
+    // Bodyless replies (UpdateInputPosition, FocusIn/Out, SetOption, ...)
+    // are exactly _MsgSize bytes: reading the full header succeeds and the
+    // shared buffer is left untouched. Replies with a body exceed _MsgSize,
+    // trigger ERROR_MORE_DATA in _Receive, and still read the full body into
+    // the shared buffer. Reading only sizeof(_TyRes) made every bodyless
+    // reply look "larger than expected", so _Receive memsets the shared
+    // buffer, and the next DoEditSession parses an empty context — wiping
+    // the candidate cache and collapsing the grid layout.
+    char header[_MsgSize] = {0};
+    _Receive(*phandle, header, sizeof(header));
+    if (_MsgSize >= sizeof(_TyRes))
+      memcpy(&result, header, sizeof(_TyRes));
     return result;
   }
 
