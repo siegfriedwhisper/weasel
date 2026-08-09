@@ -366,6 +366,11 @@ void RimeWithWeaselHandler::SetLayoutType(int layout_type,
     m_ui->style().layout_type = (weasel::UIStyle::LayoutType)layout_type;
     m_ui->Refresh();
   }
+  // 关键修复：响应必须带 body，否则 Client 端 _Receive 遇 ERROR_MORE_DATA
+  // 清空共享 buffer → 下次 DoEditSession 解析出空候选 → 覆盖 TSF 缓存 →
+  // 矩阵闪退
+  _Respond(ipc_id, 0);
+  _UpdateUI(ipc_id);
 }
 
 void RimeWithWeaselHandler::FocusIn(DWORD client_caps, WeaselSessionId ipc_id) {
