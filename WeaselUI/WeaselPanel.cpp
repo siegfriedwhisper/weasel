@@ -1,5 +1,7 @@
 #include "stdafx.h"
 #include "WeaselPanel.h"
+#include <cstdio>
+#include <cstdlib>
 
 #include <utility>
 #include <ShellScalingApi.h>
@@ -172,6 +174,18 @@ void WeaselPanel::Refresh() {
     // m_ostyle = m_style at its tail, which would swallow a layout_type
     // switch (e.g. grid mode via IPC) and prevent RedrawWindow below.
     bool style_changed = (m_style != m_ostyle);
+    // temp grid-mode diagnostic log (server side). Remove after root-causing.
+    {
+      const char* tmp = getenv("TEMP");
+      std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
+      FILE* f = fopen(path.c_str(), "a");
+      if (f) {
+        fprintf(f, "Panel Refresh layout=%d hide=%d style_changed=%d cand=%u\n",
+                m_style.layout_type, hide_candidates, style_changed,
+                m_candidateCount);
+        fclose(f);
+      }
+    }
     _InitFontRes();
     _CreateLayout();
 

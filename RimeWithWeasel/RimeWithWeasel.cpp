@@ -4,6 +4,8 @@
 #include <StringAlgorithm.hpp>
 #include <WeaselConstants.h>
 #include <WeaselUtility.h>
+#include <cstdio>
+#include <cstdlib>
 
 #include <filesystem>
 #include <map>
@@ -347,6 +349,17 @@ void RimeWithWeaselHandler::SetLayoutType(int layout_type,
                                           WeaselSessionId ipc_id) {
   DLOG(INFO) << "set layout type, ipc_id = " << ipc_id
              << ", layout_type = " << layout_type;
+  // temp grid-mode diagnostic log (server side). Remove after root-causing.
+  {
+    const char* tmp = getenv("TEMP");
+    std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
+    FILE* f = fopen(path.c_str(), "a");
+    if (f) {
+      fprintf(f, "Server SetLayoutType=%d ipc_id=%d m_ui=%p\n", layout_type,
+              ipc_id, (void*)m_ui);
+      fclose(f);
+    }
+  }
   if (m_ui) {
     // 更新 Server 端渲染用的 style，面板 _CreateLayout() 据此切换布局
     m_ui->style().layout_type = (weasel::UIStyle::LayoutType)layout_type;
