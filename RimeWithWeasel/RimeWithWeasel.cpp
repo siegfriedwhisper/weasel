@@ -346,7 +346,8 @@ bool RimeWithWeaselHandler::ChangePage(bool backward,
 }
 
 void RimeWithWeaselHandler::SetLayoutType(int layout_type,
-                                          WeaselSessionId ipc_id) {
+                                          WeaselSessionId ipc_id,
+                                          EatLine eat) {
   DLOG(INFO) << "set layout type, ipc_id = " << ipc_id
              << ", layout_type = " << layout_type;
   // temp grid-mode diagnostic log (server side). Remove after root-causing.
@@ -368,8 +369,8 @@ void RimeWithWeaselHandler::SetLayoutType(int layout_type,
   }
   // 关键修复：响应必须带 body，否则 Client 端 _Receive 遇 ERROR_MORE_DATA
   // 清空共享 buffer → 下次 DoEditSession 解析出空候选 → 覆盖 TSF 缓存 →
-  // 矩阵闪退
-  _Respond(ipc_id, 0);
+  // 矩阵闪退。eat 由 ServerImpl::OnSetLayoutType 构造（写入管道），不能传空
+  _Respond(ipc_id, eat);
   _UpdateUI(ipc_id);
 }
 

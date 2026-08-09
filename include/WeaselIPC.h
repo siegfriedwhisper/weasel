@@ -75,7 +75,7 @@ struct RequestHandler {
   virtual bool ChangePage(bool backward, DWORD session_id, EatLine eat) {
     return false;
   }
-  virtual void SetLayoutType(int layout_type, DWORD session_id) {}
+  virtual void SetLayoutType(int layout_type, DWORD session_id, EatLine eat) {}
   virtual void FocusIn(DWORD param, DWORD session_id) {}
   virtual void FocusOut(DWORD param, DWORD session_id) {}
   virtual void UpdateInputPosition(RECT const& rc, DWORD session_id) {}
