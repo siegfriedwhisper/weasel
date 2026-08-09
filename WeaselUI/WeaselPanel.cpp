@@ -177,7 +177,8 @@ void WeaselPanel::Refresh() {
     // temp grid-mode diagnostic log (server side). Remove after root-causing.
     {
       const char* tmp = getenv("TEMP");
-      std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
+      std::string path =
+          std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
       FILE* f = fopen(path.c_str(), "a");
       if (f) {
         fprintf(f, "Panel Refresh layout=%d hide=%d style_changed=%d cand=%u\n",

@@ -352,7 +352,8 @@ void RimeWithWeaselHandler::SetLayoutType(int layout_type,
   // temp grid-mode diagnostic log (server side). Remove after root-causing.
   {
     const char* tmp = getenv("TEMP");
-    std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
+    std::string path =
+        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
     FILE* f = fopen(path.c_str(), "a");
     if (f) {
       fprintf(f, "Server SetLayoutType=%d ipc_id=%d m_ui=%p\n", layout_type,

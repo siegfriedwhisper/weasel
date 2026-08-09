@@ -18,7 +18,8 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
   // temp grid-mode diagnostic log (TSF side). Remove after root-causing.
   {
     const char* tmp = getenv("TEMP");
-    std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-tsf.log";
+    std::string path =
+        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-tsf.log";
     FILE* f = fopen(path.c_str(), "a");
     if (f) {
       fprintf(f, "DoEditSession ok=%d cand=%zu composing=%d\n", ok,
