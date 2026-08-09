@@ -168,6 +168,10 @@ void WeaselPanel::Refresh() {
   // only RedrawWindow if no need to hide candidates window, or
   // inline_no_candidates
   if (!hide_candidates || inline_no_candidates) {
+    // Record style change BEFORE _InitFontRes() — it unconditionally does
+    // m_ostyle = m_style at its tail, which would swallow a layout_type
+    // switch (e.g. grid mode via IPC) and prevent RedrawWindow below.
+    bool style_changed = (m_style != m_ostyle);
     _InitFontRes();
     _CreateLayout();
 
@@ -176,7 +180,7 @@ void WeaselPanel::Refresh() {
     ReleaseDC(dc);
     _ResizeWindow();
     _RepositionWindow();
-    if (m_ctx != m_octx || m_style != m_ostyle) {
+    if (m_ctx != m_octx || style_changed) {
       m_octx = m_ctx;
       m_ostyle = m_style;
       RedrawWindow();
