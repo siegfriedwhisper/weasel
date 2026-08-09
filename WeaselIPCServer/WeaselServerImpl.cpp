@@ -255,6 +255,10 @@ DWORD ServerImpl::OnUpdateInputPosition(WEASEL_IPC_COMMAND uMsg,
                                         DWORD lParam) {
   if (!m_pRequestHandler)
     return 0;
+  auto eat = [this](std::wstring& msg) -> bool {
+    *channel << msg;
+    return true;
+  };
   /*
    * 移位标志 = 1bit == 0
    * height: 0~127 = 7bit
@@ -288,7 +292,7 @@ DWORD ServerImpl::OnUpdateInputPosition(WEASEL_IPC_COMMAND uMsg,
     rc = {lt.x, lt.y, rb.x, rb.y};
   }
 
-  m_pRequestHandler->UpdateInputPosition(rc, lParam);
+  m_pRequestHandler->UpdateInputPosition(rc, lParam, eat);
   return 0;
 }
 

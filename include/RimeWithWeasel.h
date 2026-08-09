@@ -58,7 +58,9 @@ class RimeWithWeaselHandler : public weasel::RequestHandler {
                              EatLine eat);
   virtual void FocusIn(DWORD param, WeaselSessionId ipc_id);
   virtual void FocusOut(DWORD param, WeaselSessionId ipc_id);
-  virtual void UpdateInputPosition(RECT const& rc, WeaselSessionId ipc_id);
+  virtual void UpdateInputPosition(RECT const& rc,
+                                   WeaselSessionId ipc_id,
+                                   EatLine eat);
   virtual void StartMaintenance();
   virtual void EndMaintenance();
   virtual void SetOption(WeaselSessionId ipc_id,

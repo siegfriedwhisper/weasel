@@ -78,7 +78,9 @@ struct RequestHandler {
   virtual void SetLayoutType(int layout_type, DWORD session_id, EatLine eat) {}
   virtual void FocusIn(DWORD param, DWORD session_id) {}
   virtual void FocusOut(DWORD param, DWORD session_id) {}
-  virtual void UpdateInputPosition(RECT const& rc, DWORD session_id) {}
+  virtual void UpdateInputPosition(RECT const& rc,
+                                   DWORD session_id,
+                                   EatLine eat) {}
   virtual void StartMaintenance() {}
   virtual void EndMaintenance() {}
   virtual void SetOption(DWORD session_id, const std::string& opt, bool val) {}

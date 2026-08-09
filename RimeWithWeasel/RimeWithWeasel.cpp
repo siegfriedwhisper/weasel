@@ -391,7 +391,8 @@ void RimeWithWeaselHandler::FocusOut(DWORD param, WeaselSessionId ipc_id) {
 }
 
 void RimeWithWeaselHandler::UpdateInputPosition(RECT const& rc,
-                                                WeaselSessionId ipc_id) {
+                                                WeaselSessionId ipc_id,
+                                                EatLine eat) {
   DLOG(INFO) << "Update input position: (" << rc.left << ", " << rc.top
              << "), ipc_id = " << ipc_id
              << ", m_active_session = " << m_active_session;
@@ -399,6 +400,11 @@ void RimeWithWeaselHandler::UpdateInputPosition(RECT const& rc,
     m_ui->UpdateInputPosition(rc);
   if (m_disabled)
     return;
+  // 响应必须带 body：UpdateInputPosition 每个按键后都发，若响应无 body，
+  // Client 端 _Send 的请求头残留在共享 buffer，下次 DoEditSession 解析出
+  // 空候选 → 覆盖 TSF 缓存 → 矩阵闪退。带 body 后 ReadFile 遇 MORE_DATA
+  // 清 buffer 读全文，候选数据保持有效。
+  _Respond(ipc_id, eat);
   if (m_active_session != ipc_id) {
     _UpdateUI(ipc_id);
     m_active_session = ipc_id;
