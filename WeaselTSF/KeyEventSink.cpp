@@ -52,17 +52,18 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       else if (ke.keycode == ibus::Down)
         ke.keycode = ibus::Up;
     }
-    // Grid matrix: ↑/↓ = page flip. The server expands each response into
-    // a 4-page candidate window (page_size 5 = one matrix row), so the
-    // frontend just asks for a flip and renders the expanded response.
-    // Digits/space/page keys keep engine defaults (current page = row 0).
-    if (ke.keycode == ibus::Up || ke.keycode == ibus::Down) {
+    // Grid matrix arrows: ↑/↓ = page flip (ChangePage, one sync IPC);
+    // ←/→ = previous/next candidate on the current page (Highlight, one
+    // sync IPC). Digits/space/page keys keep engine defaults (current
+    // page = grid row 0).
+    if (ke.keycode == ibus::Up || ke.keycode == ibus::Down ||
+        ke.keycode == ibus::Left || ke.keycode == ibus::Right) {
       UINT cand_count = 0;
       _cand->GetCount(&cand_count);
       if (cand_count > 0) {
         if ((ke.mask & ibus::RELEASE_MASK)) {
-          grid_log("GridKey dir=%d rel=1 cand=%u (eat keyup)",
-                   ke.keycode == ibus::Down ? 1 : -1, cand_count);
+          grid_log("GridKey kc=%d rel=1 cand=%u (eat keyup)", ke.keycode,
+                   cand_count);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
@@ -71,9 +72,24 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
         bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
                                         ibus::ALT_MASK)) != 0;
         if (!has_modifier) {
-          grid_log("GridKey dir=%d rel=0 cand=%u -> flip",
-                   ke.keycode == ibus::Down ? 1 : -1, cand_count);
-          m_client.ChangePage(ke.keycode == ibus::Up);
+          if (ke.keycode == ibus::Up || ke.keycode == ibus::Down) {
+            grid_log("GridKey kc=%d rel=0 cand=%u -> flip", ke.keycode,
+                     cand_count);
+            m_client.ChangePage(ke.keycode == ibus::Up);
+          } else {
+            UINT sel = 0;
+            _cand->GetSelection(&sel);
+            if ((ke.keycode == ibus::Left && sel > 0) ||
+                (ke.keycode == ibus::Right && sel + 1 < cand_count)) {
+              size_t target = (ke.keycode == ibus::Left) ? sel - 1 : sel + 1;
+              grid_log("GridKey kc=%d rel=0 cand=%u sel=%u -> hl %u",
+                       ke.keycode, cand_count, sel, (UINT)target);
+              m_client.HighlightCandidateOnCurrentPage(target);
+            } else {
+              grid_log("GridKey kc=%d rel=0 sel=%u (edge, eat only)",
+                       ke.keycode, sel);
+            }
+          }
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
