@@ -3,6 +3,24 @@
 #include "WeaselTSF.h"
 #include <KeyEvent.h>
 #include "CandidateList.h"
+#include <cstdio>
+#include <cstdlib>
+
+// temp grid diagnostic log (TSF side). Remove after root-causing.
+static void grid_log(const char* fmt, ...) {
+  char buf[512];
+  va_list ap;
+  va_start(ap, fmt);
+  vsnprintf(buf, sizeof(buf), fmt, ap);
+  va_end(ap);
+  const char* tmp = getenv("TEMP");
+  std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-tsf.log";
+  FILE* f = fopen(path.c_str(), "a");
+  if (f) {
+    fprintf(f, "%s\n", buf);
+    fclose(f);
+  }
+}
 
 static weasel::KeyEvent prevKeyEvent;
 static BOOL prevfEaten = FALSE;
@@ -43,6 +61,8 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       _cand->GetCount(&cand_count);
       if (cand_count > 0) {
         if ((ke.mask & ibus::RELEASE_MASK)) {
+          grid_log("GridKey dir=%d rel=1 cand=%u row=%d (eat keyup)",
+                   ke.keycode == ibus::Down ? 1 : -1, cand_count, m_grid_row);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
@@ -51,6 +71,8 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
         bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
                                         ibus::ALT_MASK)) != 0;
         if (!has_modifier) {
+          grid_log("GridKey dir=%d rel=0 cand=%u row=%d -> move",
+                   ke.keycode == ibus::Down ? 1 : -1, cand_count, m_grid_row);
           _GridMoveRow(ke.keycode == ibus::Down ? 1 : -1);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
