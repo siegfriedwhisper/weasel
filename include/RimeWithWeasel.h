@@ -82,6 +82,8 @@ class RimeWithWeaselHandler : public weasel::RequestHandler {
   // Expand a 5-candidate page into a 4-page window (4x5 grid) by flipping
   // forward in-process and appending each page's candidates to cinfo, then
   // flipping back. Runs inside the server process (microseconds, no IPC).
+  // The window is anchored at (currentPage - m_grid_row) so the highlight
+  // row moves freely inside the grid.
   void _ExpandGridCandidates(RimeSessionId session_id,
                              weasel::CandidateInfo& cinfo);
   void _GetStatus(weasel::Status& stat,
@@ -109,6 +111,7 @@ class RimeWithWeaselHandler : public weasel::RequestHandler {
   std::string m_last_schema_id;
   std::string m_last_app_name;
   weasel::UIStyle m_base_style;
+  int m_grid_row = 0;  // grid highlight row (0-3), server-side matrix state
   std::map<std::string, bool> m_show_notifications;
   std::map<std::string, bool> m_show_notifications_base;
   std::function<void()> _UpdateUICallback;

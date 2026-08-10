@@ -268,6 +268,9 @@ BOOL RimeWithWeaselHandler::ProcessKeyEvent(KeyEvent keyEvent,
              << ", mask = " << keyEvent.mask << ", ipc_id = " << ipc_id;
   if (m_disabled)
     return FALSE;
+  // Any non-navigation key (letters/digits/space/etc.) means new input:
+  // reset the grid highlight to row 0 (the engine's current page).
+  m_grid_row = 0;
   RimeSessionId session_id = to_session_id(ipc_id);
   Bool handled = rime_api->process_key(session_id, keyEvent.keycode,
                                        expand_ibus_modifier(keyEvent.mask));
@@ -337,6 +340,16 @@ bool RimeWithWeaselHandler::ChangePage(bool backward,
                                        EatLine eat) {
   DLOG(INFO) << "change page, ipc_id = " << ipc_id
              << (backward ? "backward" : "foreward");
+  // Grid matrix: ↑/↓ moves the highlight row (0-3); the engine page flip
+  // follows, so the window start (currentPage - m_grid_row) stays fixed
+  // while moving within the grid and scrolls at the edges.
+  if (backward) {
+    if (m_grid_row > 0)
+      --m_grid_row;
+  } else {
+    if (m_grid_row < 3)
+      ++m_grid_row;
+  }
   bool res = rime_api->change_page(to_session_id(ipc_id), backward);
   _Respond(ipc_id, eat);
   _UpdateUI(ipc_id);
@@ -483,12 +496,27 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
     weasel::CandidateInfo& cinfo) {
   // Grid matrix: expand the current 5-candidate page into a 4-page window
   // (4 rows x 5 columns) so the frontend renders the whole grid from a
-  // single response. All flips happen in-process (rime_api direct calls,
-  // microseconds) and are restored afterwards so page-relative Select
-  // semantics stay intact.
-  const int kExtraPages = 3;
+  // single response. The window is anchored at (currentPage - m_grid_row);
+  // the highlight row sits at grid row m_grid_row. All flips happen
+  // in-process (rime_api direct calls, microseconds) and are restored
+  // afterwards so page-relative Select semantics stay intact.
+  const int kRows = 4;
+  const int row = m_grid_row;
+  const int kExtraPages = kRows - 1;  // pages other than the current one
+  weasel::CandidateInfo pages[kRows];
   int last_page = cinfo.currentPage;
-  for (int i = 0; i < kExtraPages; ++i) {
+  // 1. Walk back `row` pages to the window start, caching rows 0..row-1.
+  for (int i = 0; i < row; ++i) {
+    if (!rime_api->change_page(session_id, true))
+      break;
+    RIME_STRUCT(RimeContext, pc);
+    if (!rime_api->get_context(session_id, &pc))
+      break;
+    _GetCandidateInfo(pages[row - 1 - i], pc);
+    rime_api->free_context(&pc);
+  }
+  // 2. Pull the pages after the current one (rows row+1..3).
+  for (int i = 0; i < kExtraPages - row; ++i) {
     if (!rime_api->change_page(session_id, false))
       break;
     RIME_STRUCT(RimeContext, pc);
@@ -500,16 +528,23 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
     if (pcinfo.currentPage == last_page)
       break;  // no-op flip: no more pages
     last_page = pcinfo.currentPage;
-    cinfo.candies.insert(cinfo.candies.end(), pcinfo.candies.begin(),
-                         pcinfo.candies.end());
-    cinfo.comments.insert(cinfo.comments.end(), pcinfo.comments.begin(),
-                          pcinfo.comments.end());
-    cinfo.labels.insert(cinfo.labels.end(), pcinfo.labels.begin(),
-                        pcinfo.labels.end());
+    pages[row + 1 + i] = pcinfo;
   }
-  // Restore the current page (PreviousPage never fails; it clamps to 0).
-  for (int i = 0; i < kExtraPages; ++i)
+  // 3. Restore the current page (PreviousPage never fails; clamps to 0).
+  for (int i = 0; i < kExtraPages - row; ++i)
     rime_api->change_page(session_id, true);
+  // 4. Assemble the grid; the current page is grid row `row`.
+  weasel::CandidateInfo grid;
+  for (int r = 0; r < kRows; ++r) {
+    const auto& src = (r == row) ? cinfo : pages[r];
+    grid.candies.insert(grid.candies.end(), src.candies.begin(),
+                        src.candies.end());
+    grid.comments.insert(grid.comments.end(), src.comments.begin(),
+                         src.comments.end());
+    grid.labels.insert(grid.labels.end(), src.labels.begin(), src.labels.end());
+  }
+  cinfo = std::move(grid);
+  cinfo.highlighted += row * 5;  // highlight column within grid row `row`
 }
 
 void RimeWithWeaselHandler::StartMaintenance() {
