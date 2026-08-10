@@ -79,6 +79,11 @@ class RimeWithWeaselHandler : public weasel::RequestHandler {
   bool _Respond(WeaselSessionId ipc_id, EatLine eat);
   void _ReadClientInfo(WeaselSessionId ipc_id, LPWSTR buffer);
   void _GetCandidateInfo(weasel::CandidateInfo& cinfo, RimeContext& ctx);
+  // Expand a 5-candidate page into a 4-page window (4x5 grid) by flipping
+  // forward in-process and appending each page's candidates to cinfo, then
+  // flipping back. Runs inside the server process (microseconds, no IPC).
+  void _ExpandGridCandidates(RimeSessionId session_id,
+                             weasel::CandidateInfo& cinfo);
   void _GetStatus(weasel::Status& stat,
                   WeaselSessionId ipc_id,
                   weasel::Context& ctx);

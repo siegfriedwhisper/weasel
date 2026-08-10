@@ -478,6 +478,40 @@ void RimeWithWeaselHandler::_GetCandidateInfo(CandidateInfo& cinfo,
   cinfo.is_last_page = ctx.menu.is_last_page;
 }
 
+void RimeWithWeaselHandler::_ExpandGridCandidates(
+    RimeSessionId session_id,
+    weasel::CandidateInfo& cinfo) {
+  // Grid matrix: expand the current 5-candidate page into a 4-page window
+  // (4 rows x 5 columns) so the frontend renders the whole grid from a
+  // single response. All flips happen in-process (rime_api direct calls,
+  // microseconds) and are restored afterwards so page-relative Select
+  // semantics stay intact.
+  const int kExtraPages = 3;
+  int last_page = cinfo.currentPage;
+  for (int i = 0; i < kExtraPages; ++i) {
+    if (!rime_api->change_page(session_id, false))
+      break;
+    RIME_STRUCT(RimeContext, pc);
+    if (!rime_api->get_context(session_id, &pc))
+      break;
+    weasel::CandidateInfo pcinfo;
+    _GetCandidateInfo(pcinfo, pc);
+    rime_api->free_context(&pc);
+    if (pcinfo.currentPage == last_page)
+      break;  // no-op flip: no more pages
+    last_page = pcinfo.currentPage;
+    cinfo.candies.insert(cinfo.candies.end(), pcinfo.candies.begin(),
+                         pcinfo.candies.end());
+    cinfo.comments.insert(cinfo.comments.end(), pcinfo.comments.begin(),
+                          pcinfo.comments.end());
+    cinfo.labels.insert(cinfo.labels.end(), pcinfo.labels.begin(),
+                        pcinfo.labels.end());
+  }
+  // Restore the current page (PreviousPage never fails; it clamps to 0).
+  for (int i = 0; i < kExtraPages; ++i)
+    rime_api->change_page(session_id, true);
+}
+
 void RimeWithWeaselHandler::StartMaintenance() {
   m_session_status_map.clear();
   Finalize();
@@ -796,6 +830,8 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
     CandidateInfo cinfo;
     if (has_candidates) {
       _GetCandidateInfo(cinfo, ctx);
+      // Expand to a 4x5 grid window (server-side, in-process page flips).
+      _ExpandGridCandidates(session_id, cinfo);
     }
     if (is_composing) {
       const auto& preedit = ctx.composition.preedit;

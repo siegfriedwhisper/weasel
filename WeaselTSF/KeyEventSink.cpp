@@ -52,17 +52,17 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       else if (ke.keycode == ibus::Down)
         ke.keycode = ibus::Up;
     }
-    // Grid matrix: ↑/↓ move the highlight row (0-3) inside the fixed 4-page
-    // window and sync the engine page (start + row) via ChangePage. Digits/
-    // space/page keys keep engine defaults (they operate on the current page
-    // = the highlighted row).
+    // Grid matrix: ↑/↓ = page flip. The server expands each response into
+    // a 4-page candidate window (page_size 5 = one matrix row), so the
+    // frontend just asks for a flip and renders the expanded response.
+    // Digits/space/page keys keep engine defaults (current page = row 0).
     if (ke.keycode == ibus::Up || ke.keycode == ibus::Down) {
       UINT cand_count = 0;
       _cand->GetCount(&cand_count);
       if (cand_count > 0) {
         if ((ke.mask & ibus::RELEASE_MASK)) {
-          grid_log("GridKey dir=%d rel=1 cand=%u row=%d (eat keyup)",
-                   ke.keycode == ibus::Down ? 1 : -1, cand_count, m_grid_row);
+          grid_log("GridKey dir=%d rel=1 cand=%u (eat keyup)",
+                   ke.keycode == ibus::Down ? 1 : -1, cand_count);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
@@ -71,9 +71,9 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
         bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
                                         ibus::ALT_MASK)) != 0;
         if (!has_modifier) {
-          grid_log("GridKey dir=%d rel=0 cand=%u row=%d -> move",
-                   ke.keycode == ibus::Down ? 1 : -1, cand_count, m_grid_row);
-          _GridMoveRow(ke.keycode == ibus::Down ? 1 : -1);
+          grid_log("GridKey dir=%d rel=0 cand=%u -> flip",
+                   ke.keycode == ibus::Down ? 1 : -1, cand_count);
+          m_client.ChangePage(ke.keycode == ibus::Up);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
