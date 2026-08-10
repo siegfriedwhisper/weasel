@@ -3,24 +3,6 @@
 #include "WeaselTSF.h"
 #include <KeyEvent.h>
 #include "CandidateList.h"
-#include <cstdio>
-#include <cstdlib>
-
-// temp grid diagnostic log (TSF side). Remove after root-causing.
-static void grid_log(const char* fmt, ...) {
-  char buf[512];
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
-  va_end(ap);
-  const char* tmp = getenv("TEMP");
-  std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-tsf.log";
-  FILE* f = fopen(path.c_str(), "a");
-  if (f) {
-    fprintf(f, "%s\n", buf);
-    fclose(f);
-  }
-}
 
 static weasel::KeyEvent prevKeyEvent;
 static BOOL prevfEaten = FALSE;
@@ -62,8 +44,6 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       _cand->GetCount(&cand_count);
       if (cand_count > 0) {
         if ((ke.mask & ibus::RELEASE_MASK)) {
-          grid_log("GridKey kc=%d rel=1 cand=%u (eat keyup)", ke.keycode,
-                   cand_count);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
@@ -73,8 +53,6 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
                                         ibus::ALT_MASK)) != 0;
         if (!has_modifier) {
           if (ke.keycode == ibus::Up || ke.keycode == ibus::Down) {
-            grid_log("GridKey kc=%d rel=0 cand=%u -> flip", ke.keycode,
-                     cand_count);
             m_client.ChangePage(ke.keycode == ibus::Up);
           } else {
             UINT sel = 0;
@@ -85,12 +63,7 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
             if ((ke.keycode == ibus::Left && col > 0) ||
                 (ke.keycode == ibus::Right && col + 1 < 5)) {
               UINT target = (ke.keycode == ibus::Left) ? col - 1 : col + 1;
-              grid_log("GridKey kc=%d rel=0 sel=%u col=%u -> hl %u", ke.keycode,
-                       sel, col, target);
               m_client.HighlightCandidateOnCurrentPage(target);
-            } else {
-              grid_log("GridKey kc=%d rel=0 sel=%u col=%u (edge, eat only)",
-                       ke.keycode, sel, col);
             }
           }
           *pfEaten = TRUE;

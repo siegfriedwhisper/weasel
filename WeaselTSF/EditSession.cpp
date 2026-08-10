@@ -2,24 +2,6 @@
 #include "WeaselTSF.h"
 #include "CandidateList.h"
 #include "ResponseParser.h"
-#include <cstdio>
-#include <cstdlib>
-
-// temp grid diagnostic log (TSF side). Remove after root-causing.
-static void grid_log(const char* fmt, ...) {
-  char buf[512];
-  va_list ap;
-  va_start(ap, fmt);
-  vsnprintf(buf, sizeof(buf), fmt, ap);
-  va_end(ap);
-  const char* tmp = getenv("TEMP");
-  std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-tsf.log";
-  FILE* f = fopen(path.c_str(), "a");
-  if (f) {
-    fprintf(f, "%s\n", buf);
-    fclose(f);
-  }
-}
 
 STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
   // get commit string from server
@@ -30,8 +12,6 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
                                 &_cand->style());
 
   bool ok = m_client.GetResponseData(std::ref(parser));
-  grid_log("Edit ok=%d comp=%d cand=%zu", ok, _status.composing,
-           context->cinfo.candies.size());
 
   _UpdateLanguageBar(_status);
 

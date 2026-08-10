@@ -333,17 +333,6 @@ bool RimeWithWeaselHandler::HighlightCandidateOnCurrentPage(
   // do_with_candidate_on_current_page) — pass the column straight through.
   RimeSessionId session_id = to_session_id(ipc_id);
   bool res = rime_api->highlight_candidate_on_current_page(session_id, index);
-  // temp grid diagnostic log. Remove after root-causing.
-  {
-    const char* tmp = getenv("TEMP");
-    std::string path =
-        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
-    FILE* f = fopen(path.c_str(), "a");
-    if (f) {
-      fprintf(f, "Hl ipc=%d idx=%zu res=%d\n", ipc_id, index, (int)res);
-      fclose(f);
-    }
-  }
   _Respond(ipc_id, eat);
   _UpdateUI(ipc_id);
   return res;
@@ -569,18 +558,6 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
   }
   cinfo = std::move(grid);
   cinfo.highlighted = hl_col + row * 5;  // highlight column within grid row
-  // temp grid diagnostic log. Remove after root-causing.
-  {
-    const char* tmp = getenv("TEMP");
-    std::string path =
-        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
-    FILE* f = fopen(path.c_str(), "a");
-    if (f) {
-      fprintf(f, "Expand row=%d hl=%u cand=%zu\n", row, cinfo.highlighted,
-              cinfo.candies.size());
-      fclose(f);
-    }
-  }
 }
 
 void RimeWithWeaselHandler::StartMaintenance() {
