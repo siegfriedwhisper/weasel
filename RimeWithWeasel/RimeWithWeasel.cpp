@@ -780,6 +780,18 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
 
   SessionStatus& session_status = get_session_status(ipc_id);
   RimeSessionId session_id = session_status.session_id;
+  // temp grid-mode diagnostic log (server side). Remove after root-causing.
+  {
+    const char* tmp = getenv("TEMP");
+    std::string path =
+        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
+    FILE* f = fopen(path.c_str(), "a");
+    if (f) {
+      fprintf(f, "Respond ipc_id=%d session_id=%d map_synced=%d\n", ipc_id,
+              session_id, (int)session_status.__synced);
+      fclose(f);
+    }
+  }
   RIME_STRUCT(RimeCommit, commit);
   if (rime_api->get_commit(session_id, &commit)) {
     actions.push_back("commit");
@@ -824,6 +836,19 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
   RIME_STRUCT(RimeContext, ctx);
   if (rime_api->get_context(session_id, &ctx)) {
     bool has_candidates = ctx.menu.num_candidates > 0;
+    // temp grid-mode diagnostic log (server side). Remove after root-causing.
+    {
+      const char* tmp = getenv("TEMP");
+      std::string path =
+          std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
+      FILE* f = fopen(path.c_str(), "a");
+      if (f) {
+        fprintf(f, "Respond ctx: num_cand=%d has_cand=%d composing=%d\n",
+                ctx.menu.num_candidates, (int)has_candidates,
+                (int)is_composing);
+        fclose(f);
+      }
+    }
     CandidateInfo cinfo;
     if (has_candidates) {
       _GetCandidateInfo(cinfo, ctx);
