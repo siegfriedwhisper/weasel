@@ -1322,12 +1322,13 @@ static void _UpdateUIStyle(RimeConfig* config, UI* ui, bool initialize) {
   _RimeGetIntStr(config, "style/layout/max_height", style.max_height, 0, 0,
                  _abs);
   // layout (alternative to style/horizontal)
-  static constexpr Array<UIStyle::LayoutType, 5> _layoutArr = {
+  static constexpr Array<UIStyle::LayoutType, 6> _layoutArr = {
       {{"vertical", UIStyle::LAYOUT_VERTICAL},
        {"horizontal", UIStyle::LAYOUT_HORIZONTAL},
        {"vertical_text", UIStyle::LAYOUT_VERTICAL_TEXT},
        {"vertical+fullscreen", UIStyle::LAYOUT_VERTICAL_FULLSCREEN},
-       {"horizontal+fullscreen", UIStyle::LAYOUT_HORIZONTAL_FULLSCREEN}}};
+       {"horizontal+fullscreen", UIStyle::LAYOUT_HORIZONTAL_FULLSCREEN},
+       {"grid", UIStyle::LAYOUT_GRID}}};
   _RimeParseStringOptWithFallback(config, "style/layout/type",
                                   style.layout_type, _layoutArr,
                                   style.layout_type);
