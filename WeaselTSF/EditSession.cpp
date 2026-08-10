@@ -69,9 +69,15 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
     } else {
       m_grid_row = 0;  // any other key: back to the top row (current page)
     }
-    if (_status.composing && !context->cinfo.candies.empty())
+    if (_status.composing && !context->cinfo.candies.empty()) {
       _ExpandCandidatesToGrid(*context);
-    _UpdateUI(*context, _status);
+      _UpdateUI(*context, _status);
+    } else if (!_status.composing) {
+      // composition ended: clear the UI normally
+      _UpdateUI(*context, _status);
+    }
+    // composing but no candidates (failed page flip / exhausted menu):
+    // keep the current UI, do NOT wipe the candidate window.
   }
 
   return TRUE;
@@ -84,41 +90,41 @@ void WeaselTSF::_ExpandCandidatesToGrid(weasel::Context& ctx) {
   weasel::Config page_config;
   std::vector<weasel::Text> pages[kRows];
   int p1 = 0, p2 = 0, p3 = 0;
+  // Note: ClientImpl::ChangePage always returns false (Server's OnChangePage
+  // hard-returns 0) even though the flip executed — judge by response
+  // content (empty candidates = no more pages), never by the return value.
   // 1. Walk back `row` pages to the window start, caching each page.
   for (int i = 0; i < row; ++i) {
-    if (!m_client.ChangePage(true)) {
-      p1 = -1;
-      break;
-    }
+    m_client.ChangePage(true);
     ++p1;
     weasel::Context pc;
     weasel::ResponseParser parser(nullptr, &pc, &page_status, &page_config,
                                   nullptr);
     if (!m_client.GetResponseData(std::ref(parser)))
       break;
+    if (pc.cinfo.candies.empty())
+      break;
     pages[row - 1 - i] = pc.cinfo.candies;
   }
   // 2. Pull the remaining pages after the current one (rows row+1..3).
+  int last_page = ctx.cinfo.currentPage;  // no-op flips repeat the same page
   for (int i = 0; i < kRows - 1 - row; ++i) {
-    if (!m_client.ChangePage(false)) {
-      p2 = -1;
-      break;
-    }
+    m_client.ChangePage(false);
     ++p2;
     weasel::Context pc;
     weasel::ResponseParser parser(nullptr, &pc, &page_status, &page_config,
                                   nullptr);
     if (!m_client.GetResponseData(std::ref(parser)))
       break;
+    if (pc.cinfo.candies.empty() || pc.cinfo.currentPage == last_page)
+      break;  // no more pages (no-op flip keeps the same page)
+    last_page = pc.cinfo.currentPage;
     pages[row + 1 + i] = pc.cinfo.candies;
   }
   // 3. Restore the engine's current page so page-relative Select/Highlight
   // semantics (page_start = selected_index / page_size * page_size) hold.
   for (int i = 0; i < kRows - 1 - row; ++i) {
-    if (!m_client.ChangePage(true)) {
-      p3 = -1;
-      break;
-    }
+    m_client.ChangePage(true);
     ++p3;
     weasel::Context pc;
     weasel::ResponseParser parser(nullptr, &pc, &page_status, &page_config,
@@ -156,8 +162,9 @@ void WeaselTSF::_GridMoveRow(int delta) {
   if (new_row >= 0 && new_row <= kMaxRow)
     m_grid_row = new_row;  // move within the window; at the edge the window
                            // scrolls instead (page follows, row stays pinned)
-  bool cp = m_client.ChangePage(delta > 0 ? false : true);
+  // ChangePage return value is unreliable (Server hard-returns 0); the flip
+  // itself executes and the response is consumed by DoEditSession.
+  m_client.ChangePage(delta > 0 ? false : true);
   m_grid_flip = true;
-  grid_log("GridMoveRow d=%d row->%d chgpage=%d flip=%d", delta, m_grid_row,
-           (int)cp, m_grid_flip);
+  grid_log("GridMoveRow d=%d row->%d flip=%d", delta, m_grid_row, m_grid_flip);
 }
