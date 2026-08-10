@@ -558,6 +558,7 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
     rime_api->change_page(session_id, true);
   // 4. Assemble the grid; the current page is grid row `row`.
   weasel::CandidateInfo grid;
+  UINT hl_col = cinfo.highlighted;  // engine's page column, preserved
   for (int r = 0; r < kRows; ++r) {
     const auto& src = (r == row) ? cinfo : pages[r];
     grid.candies.insert(grid.candies.end(), src.candies.begin(),
@@ -567,7 +568,7 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
     grid.labels.insert(grid.labels.end(), src.labels.begin(), src.labels.end());
   }
   cinfo = std::move(grid);
-  cinfo.highlighted += row * 5;  // highlight column within grid row `row`
+  cinfo.highlighted = hl_col + row * 5;  // highlight column within grid row
   // temp grid diagnostic log. Remove after root-causing.
   {
     const char* tmp = getenv("TEMP");
