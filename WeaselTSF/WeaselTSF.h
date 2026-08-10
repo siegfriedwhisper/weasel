@@ -170,10 +170,14 @@ class WeaselTSF : public ITfTextInputProcessorEx,
   BOOL _InitKeyEventSink();
   void _UninitKeyEventSink();
   void _ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten);
-  // Expand the current-page candidate list into a 4x5 grid by pulling the
-  // next 3 pages from the engine, then restoring the original page so
+  // Expand the current-page candidate list into a 4x5 grid: the engine's
+  // current page (grid row m_grid_row) sits inside a fixed 4-page window
+  // starting at (currentPage - m_grid_row). Pages are pulled via ChangePage
+  // and the engine is flipped back to the current page afterwards so
   // Select/Highlight page-relative semantics stay intact.
   void _ExpandCandidatesToGrid(weasel::Context& ctx);
+  // Move the highlight row and sync the engine page (start + row).
+  void _GridMoveRow(int delta);
 
   BOOL _InitPreservedKey();
   void _UninitPreservedKey();
@@ -231,6 +235,10 @@ class WeaselTSF : public ITfTextInputProcessorEx,
 
   /* IME status */
   weasel::Status _status;
+
+  /* Grid matrix state: highlight row inside a fixed 4-page window */
+  int m_grid_row = 0;
+  bool m_grid_flip = false;  // set when up/down was intercepted (page flip)
 
   // guidatom for the display attibute.
   TfGuidAtom _gaDisplayAttributeInput;

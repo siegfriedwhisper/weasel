@@ -44,6 +44,11 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
     // `context` is a fresh empty Context — updating would wipe the cached
     // candidate list, making GetCount() return 0 and prematurely collapsing
     // the grid layout on the very next key.
+    if (m_grid_flip) {
+      m_grid_flip = false;  // up/down flip: keep the highlight row
+    } else {
+      m_grid_row = 0;  // any other key: back to the top row (current page)
+    }
     if (_status.composing && !context->cinfo.candies.empty())
       _ExpandCandidatesToGrid(*context);
     _UpdateUI(*context, _status);
@@ -53,35 +58,73 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
 }
 
 void WeaselTSF::_ExpandCandidatesToGrid(weasel::Context& ctx) {
-  const int kExtraPages = 3;  // current page + 3 = 4 rows x 5 columns
+  const int kRows = 4, kCols = 5;
+  const int row = m_grid_row;  // engine's current page sits at grid row
   weasel::Status page_status;
   weasel::Config page_config;
-  // Pull the next 3 pages from the engine, appending each page's
-  // candidates/comments/labels to the current context.
-  for (int i = 0; i < kExtraPages; ++i) {
+  std::vector<weasel::Text> pages[kRows];
+  // 1. Walk back `row` pages to the window start, caching each page.
+  for (int i = 0; i < row; ++i) {
+    if (!m_client.ChangePage(true))
+      return;
+    weasel::Context pc;
+    weasel::ResponseParser parser(nullptr, &pc, &page_status, &page_config,
+                                  nullptr);
+    if (!m_client.GetResponseData(std::ref(parser)))
+      return;
+    pages[row - 1 - i] = pc.cinfo.candies;
+  }
+  // 2. Pull the remaining pages after the current one (rows row+1..3).
+  for (int i = 0; i < kRows - 1 - row; ++i) {
     if (!m_client.ChangePage(false))
       break;
-    weasel::Context page_ctx;
-    weasel::ResponseParser parser(nullptr, &page_ctx, &page_status,
-                                  &page_config, nullptr);
+    weasel::Context pc;
+    weasel::ResponseParser parser(nullptr, &pc, &page_status, &page_config,
+                                  nullptr);
     if (!m_client.GetResponseData(std::ref(parser)))
       break;
-    auto& src = page_ctx.cinfo;
-    auto& dst = ctx.cinfo;
-    dst.candies.insert(dst.candies.end(), src.candies.begin(),
-                       src.candies.end());
-    dst.comments.insert(dst.comments.end(), src.comments.begin(),
-                        src.comments.end());
-    dst.labels.insert(dst.labels.end(), src.labels.begin(), src.labels.end());
+    pages[row + 1 + i] = pc.cinfo.candies;
   }
-  // Restore the original page so page-relative Select/Highlight semantics
-  // (page_start = selected_index / page_size * page_size) stay correct.
-  for (int i = 0; i < kExtraPages; ++i) {
+  // 3. Restore the engine's current page so page-relative Select/Highlight
+  // semantics (page_start = selected_index / page_size * page_size) hold.
+  for (int i = 0; i < kRows - 1 - row; ++i) {
     if (!m_client.ChangePage(true))
       break;
-    weasel::Context page_ctx;
-    weasel::ResponseParser parser(nullptr, &page_ctx, &page_status,
-                                  &page_config, nullptr);
+    weasel::Context pc;
+    weasel::ResponseParser parser(nullptr, &pc, &page_status, &page_config,
+                                  nullptr);
     m_client.GetResponseData(std::ref(parser));
   }
+  // 4. Assemble the 4x5 grid; the engine's current page is row `row`.
+  auto& cinfo = ctx.cinfo;
+  std::vector<weasel::Text> candies;
+  std::vector<weasel::Text> comments;
+  std::vector<weasel::Text> labels;
+  candies.reserve(kRows * kCols);
+  comments.reserve(kRows * kCols);
+  labels.reserve(kRows * kCols);
+  for (int r = 0; r < kRows; ++r) {
+    if (r == row) {
+      candies.insert(candies.end(), cinfo.candies.begin(), cinfo.candies.end());
+      comments.insert(comments.end(), cinfo.comments.begin(),
+                      cinfo.comments.end());
+      labels.insert(labels.end(), cinfo.labels.begin(), cinfo.labels.end());
+    } else {
+      candies.insert(candies.end(), pages[r].begin(), pages[r].end());
+    }
+  }
+  cinfo.candies = std::move(candies);
+  cinfo.comments = std::move(comments);
+  cinfo.labels = std::move(labels);
+  cinfo.highlighted += row * kCols;  // highlight the row's column
+}
+
+void WeaselTSF::_GridMoveRow(int delta) {
+  const int kMaxRow = 3;
+  int new_row = m_grid_row + delta;
+  if (new_row >= 0 && new_row <= kMaxRow)
+    m_grid_row = new_row;  // move within the window; at the edge the window
+                           // scrolls instead (page follows, row stays pinned)
+  m_client.ChangePage(delta > 0 ? false : true);  // engine page = start + row
+  m_grid_flip = true;
 }

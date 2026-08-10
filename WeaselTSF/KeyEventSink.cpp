@@ -34,10 +34,10 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       else if (ke.keycode == ibus::Down)
         ke.keycode = ibus::Up;
     }
-    // Grid matrix: ↑/↓ = page flip (row movement). Intercept and ask the
-    // server to change page; the response is consumed by the subsequent
-    // edit session (DoEditSession), which expands the candidate window
-    // into a multi-page grid. Digits/space/page keys keep engine defaults.
+    // Grid matrix: ↑/↓ move the highlight row (0-3) inside the fixed 4-page
+    // window and sync the engine page (start + row) via ChangePage. Digits/
+    // space/page keys keep engine defaults (they operate on the current page
+    // = the highlighted row).
     if (ke.keycode == ibus::Up || ke.keycode == ibus::Down) {
       UINT cand_count = 0;
       _cand->GetCount(&cand_count);
@@ -51,7 +51,7 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
         bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
                                         ibus::ALT_MASK)) != 0;
         if (!has_modifier) {
-          m_client.ChangePage(ke.keycode == ibus::Up);
+          _GridMoveRow(ke.keycode == ibus::Down ? 1 : -1);
           *pfEaten = TRUE;
           prevfEaten = *pfEaten;
           prevKeyEvent = ke;
