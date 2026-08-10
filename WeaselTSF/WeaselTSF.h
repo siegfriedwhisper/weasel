@@ -170,6 +170,10 @@ class WeaselTSF : public ITfTextInputProcessorEx,
   BOOL _InitKeyEventSink();
   void _UninitKeyEventSink();
   void _ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten);
+  // Expand the current-page candidate list into a 4x5 grid by pulling the
+  // next 3 pages from the engine, then restoring the original page so
+  // Select/Highlight page-relative semantics stay intact.
+  void _ExpandCandidatesToGrid(weasel::Context& ctx);
 
   BOOL _InitPreservedKey();
   void _UninitPreservedKey();

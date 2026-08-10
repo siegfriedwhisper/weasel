@@ -34,6 +34,31 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
       else if (ke.keycode == ibus::Down)
         ke.keycode = ibus::Up;
     }
+    // Grid matrix: ↑/↓ = page flip (row movement). Intercept and ask the
+    // server to change page; the response is consumed by the subsequent
+    // edit session (DoEditSession), which expands the candidate window
+    // into a multi-page grid. Digits/space/page keys keep engine defaults.
+    if (ke.keycode == ibus::Up || ke.keycode == ibus::Down) {
+      UINT cand_count = 0;
+      _cand->GetCount(&cand_count);
+      if (cand_count > 0) {
+        if ((ke.mask & ibus::RELEASE_MASK)) {
+          *pfEaten = TRUE;
+          prevfEaten = *pfEaten;
+          prevKeyEvent = ke;
+          return;
+        }
+        bool has_modifier = (ke.mask & (ibus::SHIFT_MASK | ibus::CONTROL_MASK |
+                                        ibus::ALT_MASK)) != 0;
+        if (!has_modifier) {
+          m_client.ChangePage(ke.keycode == ibus::Up);
+          *pfEaten = TRUE;
+          prevfEaten = *pfEaten;
+          prevKeyEvent = ke;
+          return;
+        }
+      }
+    }
     if (!keyCountToSimulate)
       *pfEaten = (BOOL)m_client.ProcessKeyEvent(ke);
 

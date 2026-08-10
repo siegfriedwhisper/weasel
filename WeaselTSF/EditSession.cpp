@@ -44,8 +44,44 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
     // `context` is a fresh empty Context — updating would wipe the cached
     // candidate list, making GetCount() return 0 and prematurely collapsing
     // the grid layout on the very next key.
+    if (_status.composing && !context->cinfo.candies.empty())
+      _ExpandCandidatesToGrid(*context);
     _UpdateUI(*context, _status);
   }
 
   return TRUE;
+}
+
+void WeaselTSF::_ExpandCandidatesToGrid(weasel::Context& ctx) {
+  const int kExtraPages = 3;  // current page + 3 = 4 rows x 5 columns
+  weasel::Status page_status;
+  weasel::Config page_config;
+  // Pull the next 3 pages from the engine, appending each page's
+  // candidates/comments/labels to the current context.
+  for (int i = 0; i < kExtraPages; ++i) {
+    if (!m_client.ChangePage(false))
+      break;
+    weasel::Context page_ctx;
+    weasel::ResponseParser parser(nullptr, &page_ctx, &page_status,
+                                  &page_config, nullptr);
+    if (!m_client.GetResponseData(std::ref(parser)))
+      break;
+    auto& src = page_ctx.cinfo;
+    auto& dst = ctx.cinfo;
+    dst.candies.insert(dst.candies.end(), src.candies.begin(),
+                       src.candies.end());
+    dst.comments.insert(dst.comments.end(), src.comments.begin(),
+                        src.comments.end());
+    dst.labels.insert(dst.labels.end(), src.labels.begin(), src.labels.end());
+  }
+  // Restore the original page so page-relative Select/Highlight semantics
+  // (page_start = selected_index / page_size * page_size) stay correct.
+  for (int i = 0; i < kExtraPages; ++i) {
+    if (!m_client.ChangePage(true))
+      break;
+    weasel::Context page_ctx;
+    weasel::ResponseParser parser(nullptr, &page_ctx, &page_status,
+                                  &page_config, nullptr);
+    m_client.GetResponseData(std::ref(parser));
+  }
 }
