@@ -79,15 +79,18 @@ void WeaselTSF::_ProcessKeyEvent(WPARAM wParam, LPARAM lParam, BOOL* pfEaten) {
           } else {
             UINT sel = 0;
             _cand->GetSelection(&sel);
-            if ((ke.keycode == ibus::Left && sel > 0) ||
-                (ke.keycode == ibus::Right && sel + 1 < cand_count)) {
-              size_t target = (ke.keycode == ibus::Left) ? sel - 1 : sel + 1;
-              grid_log("GridKey kc=%d rel=0 cand=%u sel=%u -> hl %u",
-                       ke.keycode, cand_count, sel, (UINT)target);
+            // sel is a grid index (row*5 + col); Highlight takes a page
+            // column (0-4). Left/right moves within the current row.
+            UINT col = sel % 5;
+            if ((ke.keycode == ibus::Left && col > 0) ||
+                (ke.keycode == ibus::Right && col + 1 < 5)) {
+              UINT target = (ke.keycode == ibus::Left) ? col - 1 : col + 1;
+              grid_log("GridKey kc=%d rel=0 sel=%u col=%u -> hl %u", ke.keycode,
+                       sel, col, target);
               m_client.HighlightCandidateOnCurrentPage(target);
             } else {
-              grid_log("GridKey kc=%d rel=0 sel=%u (edge, eat only)",
-                       ke.keycode, sel);
+              grid_log("GridKey kc=%d rel=0 sel=%u col=%u (edge, eat only)",
+                       ke.keycode, sel, col);
             }
           }
           *pfEaten = TRUE;

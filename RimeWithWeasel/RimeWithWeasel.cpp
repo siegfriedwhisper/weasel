@@ -504,7 +504,6 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
   const int row = m_grid_row;
   const int kExtraPages = kRows - 1;  // pages other than the current one
   weasel::CandidateInfo pages[kRows];
-  int last_page = cinfo.currentPage;
   // 1. Walk back `row` pages to the window start, caching rows 0..row-1.
   for (int i = 0; i < row; ++i) {
     if (!rime_api->change_page(session_id, true))
@@ -515,10 +514,14 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
     _GetCandidateInfo(pages[row - 1 - i], pc);
     rime_api->free_context(&pc);
   }
-  // 2. Pull the pages after the current one (rows row+1..3).
-  for (int i = 0; i < kExtraPages - row; ++i) {
+  // 2. Pull forward to the window end; skip pages already cached in step 1
+  //    (currentPage <= cinfo.currentPage) — the current page is grid row
+  //    `row` — and cache rows row+1..3.
+  int fwd = 0, cached = 0, last_page = -1;
+  for (int i = 0; i < kExtraPages; ++i) {
     if (!rime_api->change_page(session_id, false))
       break;
+    ++fwd;
     RIME_STRUCT(RimeContext, pc);
     if (!rime_api->get_context(session_id, &pc))
       break;
@@ -528,10 +531,16 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
     if (pcinfo.currentPage == last_page)
       break;  // no-op flip: no more pages
     last_page = pcinfo.currentPage;
-    pages[row + 1 + i] = pcinfo;
+    if (pcinfo.currentPage <= cinfo.currentPage)
+      continue;  // already cached (step 1) or the current page (row `row`)
+    if (cached >= kExtraPages - row)
+      break;  // window rows are full (row 3)
+    pages[row + 1 + cached] = pcinfo;
+    ++cached;
   }
-  // 3. Restore the current page (PreviousPage never fails; clamps to 0).
-  for (int i = 0; i < kExtraPages - row; ++i)
+  // 3. Restore the current page: engine is at start+fwd, target is
+  //    start+row (PreviousPage never fails; clamps to 0).
+  for (int i = 0; i < fwd - row; ++i)
     rime_api->change_page(session_id, true);
   // 4. Assemble the grid; the current page is grid row `row`.
   weasel::CandidateInfo grid;
