@@ -4,8 +4,6 @@
 #include <StringAlgorithm.hpp>
 #include <WeaselConstants.h>
 #include <WeaselUtility.h>
-#include <cstdio>
-#include <cstdlib>
 
 #include <filesystem>
 #include <map>
@@ -343,35 +341,6 @@ bool RimeWithWeaselHandler::ChangePage(bool backward,
   _Respond(ipc_id, eat);
   _UpdateUI(ipc_id);
   return res;
-}
-
-void RimeWithWeaselHandler::SetLayoutType(int layout_type,
-                                          WeaselSessionId ipc_id,
-                                          EatLine eat) {
-  DLOG(INFO) << "set layout type, ipc_id = " << ipc_id
-             << ", layout_type = " << layout_type;
-  // temp grid-mode diagnostic log (server side). Remove after root-causing.
-  {
-    const char* tmp = getenv("TEMP");
-    std::string path =
-        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
-    FILE* f = fopen(path.c_str(), "a");
-    if (f) {
-      fprintf(f, "Server SetLayoutType=%d ipc_id=%d m_ui=%p\n", layout_type,
-              ipc_id, (void*)m_ui);
-      fclose(f);
-    }
-  }
-  if (m_ui) {
-    // 更新 Server 端渲染用的 style，面板 _CreateLayout() 据此切换布局
-    m_ui->style().layout_type = (weasel::UIStyle::LayoutType)layout_type;
-    m_ui->Refresh();
-  }
-  // 关键修复：响应必须带 body，否则 Client 端 _Receive 遇 ERROR_MORE_DATA
-  // 清空共享 buffer → 下次 DoEditSession 解析出空候选 → 覆盖 TSF 缓存 →
-  // 矩阵闪退。eat 由 ServerImpl::OnSetLayoutType 构造（写入管道），不能传空
-  _Respond(ipc_id, eat);
-  _UpdateUI(ipc_id);
 }
 
 void RimeWithWeaselHandler::FocusIn(DWORD client_caps, WeaselSessionId ipc_id) {
@@ -780,18 +749,6 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
 
   SessionStatus& session_status = get_session_status(ipc_id);
   RimeSessionId session_id = session_status.session_id;
-  // temp grid-mode diagnostic log (server side). Remove after root-causing.
-  {
-    const char* tmp = getenv("TEMP");
-    std::string path =
-        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
-    FILE* f = fopen(path.c_str(), "a");
-    if (f) {
-      fprintf(f, "Respond ipc_id=%d session_id=%d map_synced=%d\n", ipc_id,
-              session_id, (int)session_status.__synced);
-      fclose(f);
-    }
-  }
   RIME_STRUCT(RimeCommit, commit);
   if (rime_api->get_commit(session_id, &commit)) {
     actions.push_back("commit");
@@ -836,19 +793,6 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
   RIME_STRUCT(RimeContext, ctx);
   if (rime_api->get_context(session_id, &ctx)) {
     bool has_candidates = ctx.menu.num_candidates > 0;
-    // temp grid-mode diagnostic log (server side). Remove after root-causing.
-    {
-      const char* tmp = getenv("TEMP");
-      std::string path =
-          std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-server.log";
-      FILE* f = fopen(path.c_str(), "a");
-      if (f) {
-        fprintf(f, "Respond ctx: num_cand=%d has_cand=%d composing=%d\n",
-                ctx.menu.num_candidates, (int)has_candidates,
-                (int)is_composing);
-        fclose(f);
-      }
-    }
     CandidateInfo cinfo;
     if (has_candidates) {
       _GetCandidateInfo(cinfo, ctx);

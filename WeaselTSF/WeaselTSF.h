@@ -191,12 +191,6 @@ class WeaselTSF : public ITfTextInputProcessorEx,
   void _Reconnect();
   std::wstring _GetRootDir();
 
-  /* Grid Layout (5x5 candidate matrix) */
-  bool IsGridMode() const { return m_grid_mode; }
-  void _EnterGridMode();
-  void _ExitGridMode();
-  bool _HandleGridModeKey(const weasel::KeyEvent& ke, BOOL* pfEaten);
-
   bool isImmersive() const {
     return (_activateFlags & TF_TMF_IMMERSIVEMODE) != 0;
   }
@@ -233,10 +227,6 @@ class WeaselTSF : public ITfTextInputProcessorEx,
 
   /* IME status */
   weasel::Status _status;
-
-  /* Grid Layout (5x5 candidate matrix) state */
-  bool m_grid_mode = false;
-  int m_grid_original_layout = weasel::UIStyle::LAYOUT_HORIZONTAL;
 
   // guidatom for the display attibute.
   TfGuidAtom _gaDisplayAttributeInput;

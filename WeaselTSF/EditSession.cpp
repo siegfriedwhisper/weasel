@@ -2,8 +2,6 @@
 #include "WeaselTSF.h"
 #include "CandidateList.h"
 #include "ResponseParser.h"
-#include <cstdio>
-#include <cstdlib>
 
 STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
   // get commit string from server
@@ -14,19 +12,6 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
                                 &_cand->style());
 
   bool ok = m_client.GetResponseData(std::ref(parser));
-
-  // temp grid-mode diagnostic log (TSF side). Remove after root-causing.
-  {
-    const char* tmp = getenv("TEMP");
-    std::string path =
-        std::string(tmp ? tmp : "C:\\") + "\\weasel-grid-tsf.log";
-    FILE* f = fopen(path.c_str(), "a");
-    if (f) {
-      fprintf(f, "DoEditSession ok=%d cand=%zu composing=%d\n", ok,
-              context->cinfo.candies.size(), _status.composing);
-      fclose(f);
-    }
-  }
 
   _UpdateLanguageBar(_status);
 

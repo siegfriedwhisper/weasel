@@ -241,12 +241,6 @@ UIStyle& CCandidateList::style() {
   return _style;
 }
 
-void CCandidateList::SetLayoutType(weasel::UIStyle::LayoutType t) {
-  _style.layout_type = t;
-  if (_ui)
-    _ui->style().layout_type = t;
-}
-
 void CCandidateList::Refresh() {
   if (_ui)
     _ui->Refresh();
