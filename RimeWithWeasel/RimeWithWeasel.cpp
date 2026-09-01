@@ -571,6 +571,12 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
   //    start+row (PreviousPage never fails; clamps to 0).
   for (int i = 0; i < fwd - row; ++i)
     rime_api->change_page(session_id, true);
+  // Restore the highlight column: page flips move the engine's global
+  // selection index (selected_index ± page_size) and clamp at the last
+  // page, so flipping back the same number of pages lands on a different
+  // in-page column. Re-highlight the original column explicitly so the
+  // next commit (space/enter) uses the candidate the grid shows.
+  rime_api->highlight_candidate_on_current_page(session_id, cinfo.highlighted);
   // 4. Assemble the grid; the current page is grid row `row`.
   weasel::CandidateInfo grid;
   UINT hl_col = cinfo.highlighted;  // engine's page column, preserved
