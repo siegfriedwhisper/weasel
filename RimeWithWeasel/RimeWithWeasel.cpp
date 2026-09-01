@@ -546,7 +546,7 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
   // 2. Pull forward to the window end; skip pages already cached in step 1
   //    (currentPage <= cinfo.currentPage) — the current page is grid row
   //    `row` — and cache rows row+1..3.
-  int fwd = 0, cached = 0, page = cinfo.currentPage;
+  int fwd = 0, cached = 0, page = cinfo.currentPage - row;
   for (int i = 0; i < kExtraPages; ++i) {
     if (!rime_api->change_page(session_id, false))
       break;
