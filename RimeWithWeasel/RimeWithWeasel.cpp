@@ -346,14 +346,36 @@ bool RimeWithWeaselHandler::ChangePage(bool backward,
   // Grid matrix: ↑/↓ moves the highlight row (0-3); the engine page flip
   // follows, so the window start (currentPage - m_grid_row) stays fixed
   // while moving within the grid and scrolls at the edges.
-  if (backward) {
-    if (m_grid_row > 0)
-      --m_grid_row;
-  } else {
-    if (m_grid_row < 3)
-      ++m_grid_row;
+  //
+  // librime's RimeChangePage clamps the target index (via Highlight) and
+  // still returns True at the first/last page, so the return value can't
+  // tell whether the page actually flipped. Compare the page number before
+  // and after and only move the grid row on a real flip — otherwise the
+  // window anchor (currentPage - m_grid_row) goes negative, the assembly
+  // leaves a hole at the top rows and the candidates shift (misalign).
+  RimeSessionId session_id = to_session_id(ipc_id);
+  RIME_STRUCT(RimeContext, ctx_before);
+  int page_before = 0;
+  if (rime_api->get_context(session_id, &ctx_before)) {
+    page_before = ctx_before.menu.page_no;
+    rime_api->free_context(&ctx_before);
   }
-  bool res = rime_api->change_page(to_session_id(ipc_id), backward);
+  bool res = rime_api->change_page(session_id, backward);
+  RIME_STRUCT(RimeContext, ctx_after);
+  int page_after = page_before;
+  if (rime_api->get_context(session_id, &ctx_after)) {
+    page_after = ctx_after.menu.page_no;
+    rime_api->free_context(&ctx_after);
+  }
+  if (page_after != page_before) {
+    if (backward) {
+      if (m_grid_row > 0)
+        --m_grid_row;
+    } else {
+      if (m_grid_row < 3)
+        ++m_grid_row;
+    }
+  }
   _Respond(ipc_id, eat);
   _UpdateUI(ipc_id);
   return res;
@@ -504,7 +526,11 @@ void RimeWithWeaselHandler::_ExpandGridCandidates(
   // in-process (rime_api direct calls, microseconds) and are restored
   // afterwards so page-relative Select semantics stay intact.
   const int kRows = 4;
-  const int row = m_grid_row;
+  // Clamp the grid row so the window anchor (currentPage - row) never
+  // goes below 0; otherwise walking back leaves a hole at the top and
+  // the assembled grid shifts (misaligned last row, bogus highlight).
+  const int row =
+      (m_grid_row < cinfo.currentPage) ? m_grid_row : cinfo.currentPage;
   const int kExtraPages = kRows - 1;  // pages other than the current one
   weasel::CandidateInfo pages[kRows];
   // 1. Walk back `row` pages to the window start, caching rows 0..row-1.
