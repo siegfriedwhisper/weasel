@@ -5,6 +5,7 @@
 #include <WeaselConstants.h>
 #include <WeaselUtility.h>
 
+#include <cstdarg>
 #include <cstdio>
 #include <cstdlib>
 #include <filesystem>
@@ -13,6 +14,22 @@
 #include <vector>
 #include <regex>
 #include <rime_api.h>
+
+// TEMP DIAG (remove after root-causing): server-side trace of which IPC
+// arrived and how big the reply it produced was. Only the server is touched,
+// so weasel.dll stays untouched and the running apps keep their old client.
+static void _DiagLog(const char* fmt, ...) {
+  const char* tmp = getenv("TEMP");
+  std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-diag.log";
+  FILE* f = fopen(path.c_str(), "a");
+  if (!f)
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(f, fmt, ap);
+  va_end(ap);
+  fclose(f);
+}
 
 #define TRANSPARENT_COLOR 0x00000000
 #define ARGB2ABGR(value)                                 \
@@ -268,6 +285,8 @@ BOOL RimeWithWeaselHandler::ProcessKeyEvent(KeyEvent keyEvent,
                                             EatLine eat) {
   DLOG(INFO) << "Process key event: keycode = " << keyEvent.keycode
              << ", mask = " << keyEvent.mask << ", ipc_id = " << ipc_id;
+  _DiagLog("[srv] KEY code=%d mask=%d ipc=%d\n", (int)keyEvent.keycode,
+           (int)keyEvent.mask, (int)ipc_id);
   if (m_disabled)
     return FALSE;
   // Any non-navigation key (letters/digits/space/etc.) means new input:
@@ -405,6 +424,8 @@ void RimeWithWeaselHandler::UpdateInputPosition(RECT const& rc,
   DLOG(INFO) << "Update input position: (" << rc.left << ", " << rc.top
              << "), ipc_id = " << ipc_id
              << ", m_active_session = " << m_active_session;
+  _DiagLog("[srv] UPDPOS ipc=%d active=%d\n", (int)ipc_id,
+           (int)m_active_session);
   if (m_ui)
     m_ui->UpdateInputPosition(rc);
   if (m_disabled)
