@@ -120,7 +120,12 @@ jobs:
         shell: pwsh
         run: |
           $ErrorActionPreference = 'Stop'
-          .\get-rime.ps1 -use dev
+          # Pin the librime release instead of the rolling "latest" channel:
+          # that channel was rebuilt upstream on 2026-09-16 and get-rime.ps1
+          # then fails to place the headers, so Build Weasel dies with
+          # "C1083: Cannot open include file: 'rime_api.h'". 1.17.0 is a
+          # released tag with the full asset set (incl. Windows-msvc-x64/x86).
+          .\get-rime.ps1 -use dev -tag 1.17.0
 
       - name: Build data
         shell: pwsh
