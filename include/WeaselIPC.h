@@ -10,7 +10,15 @@
 #define WEASEL_IPC_PIPE_NAME L"WeaselNamedPipe"
 
 #define WEASEL_IPC_METADATA_SIZE 1024
-#define WEASEL_IPC_BUFFER_SIZE (4 * 1024)
+// Grid layout packs a whole 4x5 candidate window (4 engine pages) into one
+// reply body, which is several times larger than a normal single-page reply.
+// The original 4 KB buffer made _Send clamp data_sz to buff_size and drop the
+// tail of the reply; the client then parsed an incomplete body, DoEditSession
+// got ok == false and skipped the UI refresh, so the candidate window froze on
+// the previous keystroke (the "swallowed letter" symptom, e.g. typing "mac"
+// leaves the window showing "ma" even though the engine holds "mac").
+// 64 KB leaves ample headroom for 20 candidates with long comments.
+#define WEASEL_IPC_BUFFER_SIZE (64 * 1024)
 #define WEASEL_IPC_BUFFER_LENGTH (WEASEL_IPC_BUFFER_SIZE / sizeof(WCHAR))
 #define WEASEL_IPC_SHARED_MEMORY_SIZE \
   (sizeof(PipeMessage) + WEASEL_IPC_BUFFER_SIZE)

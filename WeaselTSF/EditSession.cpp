@@ -3,6 +3,27 @@
 #include "CandidateList.h"
 #include "ResponseParser.h"
 
+#include <cstdarg>
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+
+// TEMP DIAG (remove after root-causing): dump what each keypress actually
+// produced on the TSF side, so we can tell a truncated/failed response
+// (ok == 0) from a genuinely empty candidate list (cand == 0).
+static void _DiagLog(const char* fmt, ...) {
+  const char* tmp = getenv("TEMP");
+  std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-diag.log";
+  FILE* f = fopen(path.c_str(), "a");
+  if (!f)
+    return;
+  va_list ap;
+  va_start(ap, fmt);
+  vfprintf(f, fmt, ap);
+  va_end(ap);
+  fclose(f);
+}
+
 STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
   // get commit string from server
   std::wstring commit;
@@ -12,6 +33,10 @@ STDAPI WeaselTSF::DoEditSession(TfEditCookie ec) {
                                 &_cand->style());
 
   bool ok = m_client.GetResponseData(std::ref(parser));
+
+  _DiagLog("[tsf] ok=%d cand=%zu composing=%d preedit=[%ls]\n", ok ? 1 : 0,
+           context->cinfo.candies.size(), _status.composing ? 1 : 0,
+           context->preedit.str.c_str());
 
   _UpdateLanguageBar(_status);
 

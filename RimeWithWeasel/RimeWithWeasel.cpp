@@ -5,6 +5,8 @@
 #include <WeaselConstants.h>
 #include <WeaselUtility.h>
 
+#include <cstdio>
+#include <cstdlib>
 #include <filesystem>
 #include <map>
 #include <array>
@@ -1052,6 +1054,22 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
   body.append(L".\n");
   if (!eat(body))
     return false;
+
+  // TEMP DIAG (remove after root-causing): report the real reply size against
+  // the IPC buffer. _Send clamps data_sz to buff_size, so anything above the
+  // limit is silently truncated and the client parses a broken response.
+  {
+    const size_t used = sizeof(PipeMessage) + body.size() * sizeof(wchar_t);
+    const size_t limit = sizeof(PipeMessage) + WEASEL_IPC_BUFFER_SIZE;
+    const char* tmp = getenv("TEMP");
+    std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-diag.log";
+    FILE* f = fopen(path.c_str(), "a");
+    if (f) {
+      fprintf(f, "[srv] reply=%zu limit=%zu over=%d\n", used, limit,
+              used > limit ? 1 : 0);
+      fclose(f);
+    }
+  }
 
   return true;
 }
