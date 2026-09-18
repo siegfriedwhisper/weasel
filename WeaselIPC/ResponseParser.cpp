@@ -3,6 +3,10 @@
 #include <WeaselIPC.h>
 #include "Deserializer.h"
 
+#include <cstdio>
+#include <cstdlib>
+#include <string>
+
 using namespace weasel;
 
 ResponseParser::ResponseParser(std::wstring* commit,
@@ -19,6 +23,32 @@ ResponseParser::ResponseParser(std::wstring* commit,
 }
 
 bool ResponseParser::operator()(LPWSTR buffer, UINT length) {
+  // TEMP DIAG (remove after root-causing): the reply is read out of a reusable
+  // buffer. If the server's reply was truncated, or the buffer still held a
+  // leftover request header, the loop below never sees the "." terminator and
+  // returns false — and the caller then skips the whole UI refresh, which is
+  // what freezes the candidate window on the previous keystroke. Dump the head
+  // of what we actually got (hex, so binary garbage is recognisable).
+  {
+    char head[512];
+    size_t n = 0;
+    for (size_t i = 0; i < 120 && buffer && buffer[i]; ++i) {
+      int w =
+          snprintf(head + n, sizeof(head) - n, "%04x ", (unsigned)buffer[i]);
+      if (w <= 0 || (size_t)w >= sizeof(head) - n)
+        break;
+      n += (size_t)w;
+    }
+    head[n] = '\0';
+    const char* tmp = getenv("TEMP");
+    std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-diag.log";
+    FILE* f = fopen(path.c_str(), "a");
+    if (f) {
+      fprintf(f, "[parse] cap=%u head=%s\n", length, head);
+      fclose(f);
+    }
+  }
+
   wbufferstream bs(buffer, length);
   std::wstring line;
   while (bs.good()) {

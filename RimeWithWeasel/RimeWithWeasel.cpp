@@ -1065,8 +1065,9 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
     std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-diag.log";
     FILE* f = fopen(path.c_str(), "a");
     if (f) {
-      fprintf(f, "[srv] reply=%zu limit=%zu over=%d\n", used, limit,
-              used > limit ? 1 : 0);
+      fprintf(f, "[srv] reply=%zu limit=%zu over=%d over4k=%d\n", used, limit,
+              used > limit ? 1 : 0,
+              used > (sizeof(PipeMessage) + 4096) ? 1 : 0);
       fclose(f);
     }
   }
