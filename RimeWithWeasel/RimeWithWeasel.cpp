@@ -927,9 +927,15 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
     rime_api->free_status(&status);
   }
 
+  // TEMP DIAG: how many candidates the engine actually offered, captured
+  // before the grid expansion — this is what tells "no candidates at all"
+  // (the suspected English-input path) apart from "candidates existed but the
+  // display still froze".
+  int diag_eng_cand = -1;
   RIME_STRUCT(RimeContext, ctx);
   if (rime_api->get_context(session_id, &ctx)) {
     bool has_candidates = ctx.menu.num_candidates > 0;
+    diag_eng_cand = ctx.menu.num_candidates;
     CandidateInfo cinfo;
     if (has_candidates) {
       _GetCandidateInfo(cinfo, ctx);
@@ -1076,21 +1082,14 @@ bool RimeWithWeaselHandler::_Respond(WeaselSessionId ipc_id, EatLine eat) {
   if (!eat(body))
     return false;
 
-  // TEMP DIAG (remove after root-causing): report the real reply size against
-  // the IPC buffer. _Send clamps data_sz to buff_size, so anything above the
-  // limit is silently truncated and the client parses a broken response.
+  // TEMP DIAG (remove after root-causing): the decisive fields are engCand
+  // (did the engine offer any candidate at all) and composing; reply/over4k
+  // stay as a secondary check on the buffer theory.
   {
     const size_t used = sizeof(PipeMessage) + body.size() * sizeof(wchar_t);
-    const size_t limit = sizeof(PipeMessage) + WEASEL_IPC_BUFFER_SIZE;
-    const char* tmp = getenv("TEMP");
-    std::string path = std::string(tmp ? tmp : "C:\\") + "\\weasel-diag.log";
-    FILE* f = fopen(path.c_str(), "a");
-    if (f) {
-      fprintf(f, "[srv] reply=%zu limit=%zu over=%d over4k=%d\n", used, limit,
-              used > limit ? 1 : 0,
-              used > (sizeof(PipeMessage) + 4096) ? 1 : 0);
-      fclose(f);
-    }
+    _DiagLog("[srv] resp engCand=%d composing=%d reply=%zu over4k=%d\n",
+             diag_eng_cand, is_composing ? 1 : 0, used,
+             used > (sizeof(PipeMessage) + 4096) ? 1 : 0);
   }
 
   return true;
